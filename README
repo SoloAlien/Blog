@@ -1,0 +1,5 @@
+##跟踪《Django By Example》完成Django项目实例  --Blog
+1.创建一个blog项目
+2.创建模型
+    ①创建User
+    ②创建Article
