@@ -1,5 +1,99 @@
 ##跟踪《Django By Example》完成Django项目实例  --Blog
 1.创建一个blog项目
 2.创建模型
-    ①创建User
-    ②创建Article
+    ①创建Article
+        SlugField：
+        在django中，slug指有效URL的一部分，能使URL更加清晰易懂
+3.创建管理员用户 manager root
+    ①注册admin
+4.创建一个查询管理器
+    我们经常使用Article.objects.all()来进行数据库的查询，在这个语句中，objects其实就是一个manager，manager中封装了一些方
+    法，django通过这些方法来进行数据库的操作。
+    我们可以通过继承的方式来创建我们自定义的manager。
+    ```
+    # 创建一个manager
+    class ArticleManager(models.Manager):
+        def get_queryset(self):
+            return super(ArticleManager, self).get_queryset().filter(status="published")
+    ```
+    在Article类中将其实例化：
+    ```
+    class Article(models.Model):
+        manager = ArticleManager()
+    ```
+    然后就通过我们自定义的manager返回已经发布过的并且开头为"who"的文章了
+    ```
+    Article.manager.filter(title__startswith='who')
+    ```
+5.创建文章列表视图函数：
+    ①创建一个列表函数article_list查询所有文章,并渲染list.html页面
+    ```
+    Article.manager.all()
+    ```
+    ②在list.html页面页面获取到数据之后，我们希望能够通过点击title来跳转到article_detail.html页面来查看文章详情
+    这样的话，我们需要为每篇文章生成一个url才能实现点击跳转操作，那就要用到我们之前创建的slug标称了。
+    既然每篇文章都要生成一个url，那么我们可以为Article类定义一个get_absolute_url()方法来获取对应的url
+    ```
+    def get_absolute_url(self):
+        return reverse('article_detail',
+                       args=[self.publish.year, self.publish.month, self.publish.day, self.slug])
+    ```
+    在这个方法中用到了url的反向解析，所以我么需要对url进行定制：
+    ```
+    re_path('article_detail/(?P<year>[0-9]{4})/(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<slug>[\w-]+)/', article_detail,
+            name='article_detail')
+    ```
+    ③拿到了反向解析之后的url后，我们可以以 a 标签的方式在list.html页面中展示出来：
+    ```
+    {% for article in articles %}
+    <a href="{{ article.get_absolute_url }}">{{ article.title }}</a>
+    {% endfor %}
+    ```
+6.创建文章详情函数：
+    ①根据步骤⑤的url，我们需要article_detail函数，这个函数必须要有四个参数来接收url的传值，接收到参数后根据参数去查询数
+    据库中对应的文章，然后再将数据传给article_detail.html进行类容渲染
+    ```
+    def article_detail(req, year, month, day, slug):
+        article = Article.manager.filter(publish__year=year, publish__month=month, publish__day=day, slug=slug)[0]
+        return render(req, 'article_detail.html', locals())
+    ```
+    ②渲染article_detail.html页面：
+    ```
+    <h1>{{ article.title }}</h1>
+    <p>{{ article.slug }}</p>
+    <p>{{ article.body }}</p>
+    <p>{{ article.publish }}</p>
+    ```
+7.分页：
+    当文章的数据量过大时，一屏不能够完全显示时就需要用到分页操作，下面我们将对文章列表进行改造,会用到django自带的分页器：
+    ```
+    def article_list(req):
+        articles = Article.manager.all()
+        paginator = Paginator(articles, 3)
+        nowPage = req.GET.get("nowPage")
+        if nowPage:
+            try:
+                page = paginator.page(nowPage)
+            except EmptyPage:
+                page = paginator.page(1)
+            except PageNotAnInteger:
+                page = paginator.page(1)
+        else:
+            page = paginator.page(1)
+        return render(req, 'list.html', locals())
+    ```
+    然后再html页面中，可以显示页码或者上下页
+    ```
+    {% for article in page.object_list %}
+    <p>文章名称：<a href="{{ article.get_absolute_url }}">{{ article.title }}</a></p>
+    {% endfor %}
+    {% if page.has_previous %}
+        <a href="?nowPage={{ page.previous_page_number }}">上一页</a>
+    {% endif %}
+
+    {% if page.has_next %}
+        <a href="?nowPage={{ page.next_page_number }}">下一页</a>
+    {% endif %}
+    ```
+
+

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+{% for article in page.object_list %}
+    <p>文章名称：<a href="{{ article.get_absolute_url }}">{{ article.title }}</a></p>
+{% endfor %}
+{% if page.has_previous %}
+    <a href="?nowPage={{ page.previous_page_number }}">上一页</a>
+{% endif %}
+
+{% if page.has_next %}
+    <a href="?nowPage={{ page.next_page_number }}">下一页</a>
+{% endif %}
+</body>
+</html>

@@ -1,9 +1,16 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.urls import reverse
 
 
 # Create your models here.
+# 创建一个manager
+class ArticleManager(models.Manager):
+    def get_queryset(self):
+        return super(ArticleManager, self).get_queryset().filter(status="published")
+
+
 # 创建文章
 class Article(models.Model):
     # 状态选择：草稿或是已发布
@@ -12,7 +19,7 @@ class Article(models.Model):
         ('published', 'Published'),
     )
     title = models.CharField(max_length=250)
-    # 标签
+    # 标称
     slug = models.SlugField(max_length=250,
                             unique_for_date='publish')
     author = models.ForeignKey(User,
@@ -27,9 +34,14 @@ class Article(models.Model):
     status = models.CharField(max_length=10,
                               choices=STATUS_CHOICES,
                               default='draft')
+    manager = ArticleManager()
 
     class Meta:
         ordering = ('-publish',)
 
     def __str__(self):
         return self.title
+
+    def get_absolute_url(self):
+        return reverse('article_detail',
+                       args=[self.publish.year, self.publish.month, self.publish.day, self.slug])
