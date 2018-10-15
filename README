@@ -95,5 +95,74 @@
         <a href="?nowPage={{ page.next_page_number }}">下一页</a>
     {% endif %}
     ```
+8.为文章添加email分享功能：
+    在文章详情中添加email分享功能：
+    ①通过继承forms.Form创建一个分享信息的表单,该表单包含标题、发起人、接收人、内容，其中内容为非必填项
+    ```
+    class share_form(forms.Form):
+        title = forms.CharField(max_length=20)
+        send = forms.EmailField()
+        to = forms.EmailField()
+        comment = forms.CharField(max_length=50, required=False, widget=forms.Textarea)
+    ```
+    ②表单对象创建完成后，需要创建一个分享文章的函数：share_article
+    ```
+    def share_article(req, post_id):
+        article = None
+        data = None
+        if req.method == 'POST':
+            article = Article.manager.filter(post_id)[0]
+            form = share_form(req.POST)
+            if form.is_valid():
+                data = form.cleaned_data
+        else:
+            form = share_form()
+        return render(req, 'share_article.html', locals())
+    ```
+    ③创建share_article.html模板，展示form信息：
+    ```
+    <form>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="提交">
+    </form>
+    ```
+    ④配置路由:
+    ```
+     path('share_article/<int:post_id>/', share_article, name='share_article')
+    ```
+    ⑤使用django发送email需要在项目的settings.py文件中配置邮箱的smtp服务，在这里我们使用l63邮箱来实现,QQ的邮箱未能成功实
+    现
+    ```
+    EMAIL_USE_TLS = False
+    EMAIL_HOST = 'smtp.163.com'
+    EMAIL_PORT = 25  端口
+    EMAIL_HOST_USER = 'xxx@163.com'
+    EMAIL_HOST_PASSWORD = 'xxx'
+    DEFAULT_FROM_EMAIL =EMAIL_HOST_USER
+    ```
+    ⑥将分享文章的函数改造一下使其能够发送邮件：
+    ```
+    def share_article(req, article_id):
+    article = None
+    data = None
+    article = Article.manager.filter(id=article_id)[0]
+    if req.method == 'POST':
+        form = share_form(req.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            subject = "{}({})推荐你阅读文章{}".format(data['title'], data['send'], article.title)
+            msg = data['comment']
+            send_mail(subject=subject, message=msg, from_email='xxx@163.com', recipient_list={data['to']},
+                      fail_silently=True)
+            return HttpResponse("ok")
+    else:
+        form = share_form()
+    return render(req, 'share_article.html', locals())
+    ```
+
+
+
+
 
 
