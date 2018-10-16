@@ -6,9 +6,18 @@
 </head>
 <body>
 <h1>{{ article.title }}</h1>
+<p>{{ article.author }}</p>
 <p>{{ article.slug }}</p>
 <p>{{ article.body }}</p>
 <p>{{ article.publish }}</p>
 <p><a href="{{ url }}">分享 </a></p>
+{% for comment in comment_list %}
+    <P>{{ comment }}</P>
+    {% if comment.comment_children is not None %}
+        {% for child in comment.comment_children %}
+            <p>&nbsp;{{ child}}</p>
+        {% endfor %}
+    {% endif %}
+{% endfor %}
 </body>
 </html>

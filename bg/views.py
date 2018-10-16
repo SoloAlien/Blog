@@ -7,6 +7,12 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 def article_detail(req, year, month, day, slug):
     article = Article.manager.filter(publish__year=year, publish__month=month, publish__day=day, slug=slug)[0]
     url = reverse('share_article', args=[article.id])
+    comments = Comment.objects.filter(article=article)
+    comment_list = Article.get_comment_list(article, comments=comments)
+    print(comment_list.__len__())
+    for i in comment_list:
+        print('------------->',i)
+        print('------------->',i.comment_children)
     return render(req, 'article_detail.html', locals())
 
 

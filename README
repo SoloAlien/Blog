@@ -160,6 +160,58 @@
         form = share_form()
     return render(req, 'share_article.html', locals())
     ```
+9.为文章添加评论功能（要求，能够有多级评论）：
+    多级树形实现思路如下：
+    1.首先循环评论列表，找出父级评论，将父级评论加入到一个空列表中
+    2.循环判断父级列表中的每一个父级对象是否有comment_children[]属性，如果没有，则为其添加，如果有就判断父级对象的id和
+     评论的parent_id是否一样，一样就把评论添加到父级对象的子列表中
+    ①创建一个评论的model：
+    ```
+    class Comment(models.Model):
+        article = models.ForeignKey(Article, on_delete=models.CASCADE) # 关联文章
+        user = models.ForeignKey(User, on_delete=models.CASCADE) # 关联用户
+        parent_id = models.IntegerField(blank=True, null=True) # 父级评论的id
+        content = models.CharField(max_length=100) # 评论内容
+        comment_time = models.DateTimeField(default=timezone.now) # 评论时间
+    ```
+    ②在文章详情中将评论查询出来，并重新构建一个格式化的列表（在这里就运用到了上方所说的实现思路）：
+    ```
+    def get_comment_list(self, comments):
+        # 1.首先循环评论列表，找出父级评论，将父级评论加入到一个空列表中
+        # 2.循环判断父级列表中的每一个父级对象是否有comment_children[]属性，如果没有，则为其添加，
+        # 如果有就判断父级对象的parent_id和评论的id是否一样，一样就把评论添加到父级对象的子列表中
+        comment_list = []
+        # 循环查询结果
+        for comment in comments:
+            # 根据parent_id是否为none来判断是否是父评论，如果是父评论，就将评论追加到列表中
+            if comment.parent_id is None:
+                comment_list.append(comment)
+            # 如果不是父评论，就循环已经盛有父评论的列表
+            for child_comment in comment_list:
+                # 判断父评论是否具有comment_children属性，如果没有属性，则添加该属性
+                if not hasattr(child_comment, 'comment_children'):
+                    setattr(child_comment, 'comment_children', [])
+                # 判断当前父评论的id和当前子评论的parent_id是否一致，如果一致，说明两条评论时父子关系，再将子评论追加到子列表中
+                if child_comment.id == comment.parent_id:
+                    child_comment.comment_children.append(comment)
+        return comment_list
+    ```
+    ③在页面中循环，打印评论对象;
+    ```
+    {% for comment in comment_list %}
+        <P>{{ comment }}</P>
+        {% if comment.comment_children is not None %}
+            {% for child in comment.comment_children %}
+                <p>&nbsp;{{ child}}</p>
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+    ```
+    经过上面的代码，我们就可以看到评论列表已经实现了，但是这个这个评论并不是完善，它只能实现2级评论列表
+
+
+
+
 
 
 
